@@ -42,6 +42,20 @@ class ThriftLogger(Logger):
 
     """ThriftLogger class,log access info."""
 
+    def __init__(self, cfg):
+        Logger.__init__(self, cfg)
+        self.is_statsd = False
+        statsd_server = os.environ.get("statsd")
+        if statsd_server:
+            try:
+                host, port = statsd_server.split(":")
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.sock.connect((host, int(port)))
+            except Exception:
+                self.sock = None
+            else:
+                self.is_statsd = True
+
     def atoms(self, address, func_name, status, finish):
         atoms = {
             'h': address[0],
@@ -61,6 +75,25 @@ class ThriftLogger(Logger):
         access_log_format = "%(h)s %(t)s %(n)s %(s)s %(T)s %(p)s"
         try:
             self.access_log.info(access_log_format % atoms)
+            if self.is_statsd:
+                project_name = self.cfg.proc_name.split(":")[0]
+                statsd_key_base = "thrift.{0}.{1}".format(proc_name, func_name)
+                self.increment("{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
+                self.histogram(statsd_key_base, atoms["T"])
         except:
             self.error(traceback.format_exc())
 
+    def increment(self, name, value, sampling_rate=1.0):
+        try:
+            if self.sock:
+                self.sock.send(
+                    "{0}:{1}|c|@{2}".format(name, value, sampling_rate))
+        except Exception:
+            pass
+
+    def histogram(self, name, value):
+        try:
+            if self.sock:
+                self.sock.send("{0}:{1}|ms".format(name, value))
+        except Exception:
+            pass
