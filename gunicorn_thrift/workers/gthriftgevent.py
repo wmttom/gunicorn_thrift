@@ -198,17 +198,17 @@ class ThriftGeventWorker(AsyncWorker):
                     else:
                         self.wsgi._processMap[name](self.wsgi, seqid, iprot, oprot)
                 except ThriftFuncNotFound, ex:
+                    self.log.error("Unknown function %s" % (name))
                     self.log.access(
                         addr, name, "FUNC_NOT_FOUND", time.time() - request_start)
-                    self.log.error("Unknown function %s" % (name))
                 except Timeout, ex:
+                    self.log.error("A greenlet process timeout.")
                     self.log.access(
                         addr, name, "TIMEOUT", time.time() - request_start)
-                    self.log.error("A greenlet process timeout.")
                 except Exception, ex:
+                    self.log.error(str(ex) + traceback.format_exc())
                     self.log.access(
                         addr, name, "SERVER_ERROR", time.time() - request_start)
-                    self.log.error(str(ex) + traceback.format_exc())
                 else:
                     self.log.access(
                         addr, name, "OK", time.time() - request_start)
@@ -217,8 +217,6 @@ class ThriftGeventWorker(AsyncWorker):
         except EOFError:
             pass
         except Exception, ex:
-            print ex
-            print traceback.format_exc()
             pass
         finally:
             itrans.close()

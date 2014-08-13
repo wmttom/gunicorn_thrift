@@ -54,13 +54,13 @@ class ThriftLogger(Logger):
         return atoms
 
     def access(self, address, func_name, status, finish):
-
-        if not self.cfg.accesslog and not self.cfg.logconfig:
+        # logger_config_from_dict is used for on_staring-hook load logging-config from dict.
+        if not self.cfg.accesslog and not self.cfg.logconfig and not getattr(self, "logger_config_from_dict", None):
             return
-
         atoms = self.atoms(address, func_name, status, finish)
         access_log_format = "%(h)s %(t)s %(n)s %(s)s %(T)s %(p)s"
         try:
             self.access_log.info(access_log_format % atoms)
         except:
             self.error(traceback.format_exc())
+
