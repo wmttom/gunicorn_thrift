@@ -1,0 +1,4 @@
+service Ping
+{
+    string send_ping(1:string msg)
+}

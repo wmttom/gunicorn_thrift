@@ -1,0 +1,10 @@
+bind = "0.0.0.0:7748"
+workers = 2
+worker_connections = 1000
+worker_class = "gunicorn_thrift.workers.gthriftgevent.ThriftGeventWorker"
+logger_class = "gunicorn_thrift.thriftlogging.ThriftLogger"
+timeout = 30
+graceful_timeout = 30
+daemon = False
+accesslog = "access.log"
+errorlog = "error.log"
