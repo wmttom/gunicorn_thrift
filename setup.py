@@ -7,7 +7,7 @@ from gunicorn_thrift import __version__
 
 
 setup(
-    name = 'gunicorn_thrift',
+    name = 'ggthrift',
     version = __version__,
 
     description = 'python thrift server plugin for gunicorn.',
