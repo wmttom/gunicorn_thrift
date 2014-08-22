@@ -105,7 +105,7 @@ class ThriftGeventWorker(AsyncWorker):
         try:
             while self.alive:
                 self.notify()
-                gevent.sleep(1.0)
+                gevent.sleep(0.1)
 
         except KeyboardInterrupt:
             pass

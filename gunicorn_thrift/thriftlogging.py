@@ -27,6 +27,7 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 import traceback
 import os
+import socket
 
 from gunicorn.glogging import Logger
 
