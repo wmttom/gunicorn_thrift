@@ -77,7 +77,7 @@ class ThriftLogger(Logger):
             self.access_log.info(access_log_format % atoms)
             if self.is_statsd:
                 project_name = self.cfg.proc_name.split(":")[0]
-                statsd_key_base = "thrift.{0}.{1}".format(proc_name, func_name)
+                statsd_key_base = "thrift.{0}.{1}".format(project_name, func_name)
                 self.increment("{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
                 self.histogram(statsd_key_base, atoms["T"])
         except:
