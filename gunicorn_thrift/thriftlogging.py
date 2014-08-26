@@ -69,7 +69,8 @@ class ThriftLogger(Logger):
         return atoms
 
     def access(self, address, func_name, status, finish):
-        # logger_config_from_dict is used for on_staring-hook load logging-config from dict.
+        # logger_config_from_dict is used for on_staring-hook load
+        # logging-config from dict.
         if not self.cfg.accesslog and not self.cfg.logconfig and not getattr(self, "logger_config_from_dict", None):
             return
         atoms = self.atoms(address, func_name, status, finish)
@@ -78,8 +79,10 @@ class ThriftLogger(Logger):
             self.access_log.info(access_log_format % atoms)
             if self.is_statsd:
                 project_name = self.cfg.proc_name.split(":")[0]
-                statsd_key_base = "thrift.{0}.{1}".format(project_name, func_name)
-                self.increment("{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
+                statsd_key_base = "thrift.{0}.{1}".format(
+                    project_name, func_name)
+                self.increment(
+                    "{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
                 self.histogram(statsd_key_base, atoms["T"])
         except:
             self.error(traceback.format_exc())
@@ -98,3 +101,62 @@ class ThriftLogger(Logger):
                 self.sock.send("{0}:{1}|ms".format(name, value))
         except Exception:
             pass
+
+
+class WebStatsdLogger(Logger):
+
+    """ThriftLogger class,log access info."""
+
+    def __init__(self, cfg):
+        Logger.__init__(self, cfg)
+        self.is_statsd = False
+        statsd_server = os.environ.get("statsd")
+        if statsd_server:
+            try:
+                host, port = statsd_server.split(":")
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                self.sock.connect((host, int(port)))
+            except Exception:
+                self.sock = None
+            else:
+                self.is_statsd = True
+
+    def increment(self, name, value, sampling_rate=1.0):
+        try:
+            if self.sock:
+                self.sock.send(
+                    "{0}:{1}|c|@{2}".format(name, value, sampling_rate))
+        except Exception:
+            pass
+
+    def histogram(self, name, value):
+        try:
+            if self.sock:
+                self.sock.send("{0}:{1}|ms".format(name, value))
+        except Exception:
+            pass
+
+    def access(self, resp, req, environ, request_time):
+        """ See http://httpd.apache.org/docs/2.0/logs.html#combined
+        for format details
+        """
+
+        if not self.cfg.accesslog and not self.cfg.logconfig:
+            return
+
+        # wrap atoms:
+        # - make sure atoms will be test case insensitively
+        # - if atom doesn't exist replace it by '-'
+        safe_atoms = self.atoms_wrapper_class(self.atoms(resp, req, environ,
+                                                         request_time))
+
+        try:
+            self.access_log.info(self.cfg.access_log_format % safe_atoms)
+            if self.is_statsd:
+                statsd_key_base = "web.{0}.{1}".format(
+                    environ['RAW_URI'], environ['REQUEST_METHOD'])
+                self.increment(
+                    "{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
+                self.histogram(statsd_key_base, atoms["D"] / 1000.0)
+        except:
+            self.error(traceback.format_exc())

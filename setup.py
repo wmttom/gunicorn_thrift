@@ -21,7 +21,7 @@ setup(
     include_package_data = True,
 
     install_requires = [
-        "gunicorn==19.0",
+        "gunicorn==19.1.1",
         "gevent==1.0.1",
         "thrift==0.9.1",
     ],
