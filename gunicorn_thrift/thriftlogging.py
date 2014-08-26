@@ -154,7 +154,7 @@ class WebStatsdLogger(Logger):
             self.access_log.info(self.cfg.access_log_format % safe_atoms)
             if self.is_statsd:
                 statsd_key_base = "web.{0}.{1}".format(
-                    environ['RAW_URI'], environ['REQUEST_METHOD'])
+                    environ['RAW_URI'].split("?")[0], environ['REQUEST_METHOD'])
                 self.increment(
                     "{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
                 self.histogram(statsd_key_base, atoms["D"] / 1000.0)
