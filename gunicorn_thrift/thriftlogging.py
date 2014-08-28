@@ -156,7 +156,7 @@ class WebStatsdLogger(Logger):
                 statsd_key_base = "web.{0}.{1}".format(
                     environ['RAW_URI'].split("?")[0], environ['REQUEST_METHOD'])
                 self.increment(
-                    "{0}.{1}".format(statsd_key_base, atoms["s"]), 1)
-                self.histogram(statsd_key_base, atoms["D"] / 1000.0)
+                    "{0}.{1}".format(statsd_key_base, safe_atoms["s"]), 1)
+                self.histogram(statsd_key_base, safe_atoms["D"] / 1000.0)
         except:
             self.error(traceback.format_exc())
