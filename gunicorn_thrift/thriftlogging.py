@@ -27,15 +27,25 @@ OTHER DEALINGS IN THE SOFTWARE.
 
 import traceback
 import os
+import sys
+import logging
 import socket
 
-from gunicorn.glogging import Logger
+from logging.config import fileConfig
+
+from gunicorn import util
+from gunicorn.glogging import Logger, CONFIG_DEFAULTS
 
 THRIFT_STATUS_CODE = {
     "TIMEOUT": 504,
     "SERVER_ERROR": 500,
     "FUNC_NOT_FOUND": 404,
     "OK": 200,
+}
+
+STREAM_OUTPUT_TYPE = {
+    "error": sys.stderr,
+    "access": sys.stdout,
 }
 
 
@@ -56,6 +66,60 @@ class ThriftLogger(Logger):
                 self.sock = None
             else:
                 self.is_statsd = True
+
+    def setup(self, cfg):
+        loglevel = self.LOG_LEVELS.get(cfg.loglevel.lower(), logging.INFO)
+        self.error_log.setLevel(loglevel)
+        self.access_log.setLevel(logging.INFO)
+
+        # set gunicorn.error handler
+        self._set_handler(
+            self.error_log, cfg.errorlog,
+            logging.Formatter(self.error_fmt, self.datefmt), "error")
+
+        # set gunicorn.access handler
+        if cfg.accesslog is not None:
+            self._set_handler(
+                self.access_log, cfg.accesslog,
+                logging.Formatter(self.access_fmt), "access")
+
+        # set syslog handler
+        if cfg.syslog:
+            self._set_syslog_handler(
+                self.error_log, cfg, self.syslog_fmt, "error"
+            )
+            self._set_syslog_handler(
+                self.access_log, cfg, self.syslog_fmt, "access"
+            )
+
+        if cfg.logconfig:
+            if os.path.exists(cfg.logconfig):
+                fileConfig(
+                    cfg.logconfig, defaults=CONFIG_DEFAULTS,
+                    disable_existing_loggers=False)
+            else:
+                raise RuntimeError(
+                    "Error: log config '%s' not found" % cfg.logconfig
+                )
+
+    def _set_handler(self, log, output, fmt, log_type):
+        # remove previous gunicorn log handler
+        h = self._get_gunicorn_handler(log)
+        if h:
+            log.handlers.remove(h)
+
+        if output is not None:
+            if output == "-":
+                h = logging.StreamHandler(
+                    STREAM_OUTPUT_TYPE.get(log_type, "error")
+                )
+            else:
+                util.check_is_writeable(output)
+                h = logging.FileHandler(output)
+
+            h.setFormatter(fmt)
+            h._gunicorn = True
+            log.addHandler(h)
 
     def atoms(self, address, func_name, status, finish):
         atoms = {
