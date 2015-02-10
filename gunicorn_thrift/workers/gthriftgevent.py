@@ -105,7 +105,7 @@ class ThriftGeventWorker(AsyncWorker):
         try:
             while self.alive:
                 self.notify()
-                gevent.sleep(1.0)
+                gevent.sleep(0.1)
 
         except KeyboardInterrupt:
             pass
@@ -201,14 +201,17 @@ class ThriftGeventWorker(AsyncWorker):
                     self.log.error("Unknown function %s" % (name))
                     self.log.access(
                         addr, name, "FUNC_NOT_FOUND", time.time() - request_start)
+                    break
                 except Timeout, ex:
                     self.log.error("A greenlet process timeout.")
                     self.log.access(
                         addr, name, "TIMEOUT", time.time() - request_start)
+                    break
                 except Exception, ex:
                     self.log.error(str(ex) + traceback.format_exc())
                     self.log.access(
                         addr, name, "SERVER_ERROR", time.time() - request_start)
+                    break
                 else:
                     self.log.access(
                         addr, name, "OK", time.time() - request_start)
