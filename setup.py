@@ -22,7 +22,7 @@ setup(
 
     install_requires = [
         "gunicorn>=19.1.1",
-        "gevent==1.0.1",
+        "gevent==23.9.1",
         "thrift>=0.9.1",
     ],
 
